@@ -1,20 +1,22 @@
-"""SunuDiag - API REST servant le modele paludisme (Lab 2)."""
-
+"""
+SunuDiag - API REST servant le modele paludisme (Lab 2).
+"""
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import joblib
 import pandas as pd
-from fastapi.middleware.cors import CORSMiddleware
 
+# Création de l'application FastAPI
 app = FastAPI(
     title="SunuDiag API",
-    description=(
-        "Pre-diagnostic du paludisme (modele DataSANTE-221). "
-        "Un pre-diagnostic n’est pas un diagnostic medical."
-    ),
+    description="Pre-diagnostic du paludisme (modele DataSANTE-221). "
+                "Un pre-diagnostic n'est pas un diagnostic medical.",
     version="2.0",
 )
-# Autoriser le navigateur a appeler l'API depuis une autre origine
+
+# Autoriser le navigateur à appeler l'API depuis une autre origine
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,8 +30,7 @@ FEATURES = ["age", "glycemie", "hemoglobine", "fievre", "saison"]
 
 
 class Patient(BaseModel):
-    """Le contrat d’interface : ce que l’API accepte en entree."""
-
+    """Le contrat d'interface : ce que l'API accepte en entree."""
     age: int = Field(ge=0, le=120, description="Age en annees")
     glycemie: float = Field(ge=2.0, le=25.0, description="Glycemie (mmol/L)")
     hemoglobine: float = Field(ge=4.0, le=20.0, description="Hemoglobine (g/dL)")
@@ -39,7 +40,7 @@ class Patient(BaseModel):
 
 @app.get("/health")
 def health():
-    """Verifier que l’API est en vie et que le modele est charge."""
+    """Verifier que l'API est en vie et que le modele est charge."""
     return {"statut": "ok", "modele": "RandomForest DataSANTE-221"}
 
 
@@ -54,3 +55,6 @@ def predict(patient: Patient):
         "avertissement": "Ne remplace pas un avis medical.",
     }
 
+
+# Servir le frontend a la racine - TOUJOURS en dernier
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
