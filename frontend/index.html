@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SunuDiag - Pre-diagnostic du paludisme</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen p-4">
+<div class="max-w-md mx-auto">
+  <header class="text-center mb-6">
+    <h1 class="text-3xl font-bold text-slate-800">SunuDiag</h1>
+    <p class="text-slate-600">Pre-diagnostic du paludisme</p>
+  </header>
+
+  <div class="bg-white rounded-xl shadow p-6 space-y-4">
+    <div>
+      <label for="age" class="block text-sm font-medium text-slate-700">Age (annees)</label>
+      <input type="number" id="age" value="34"
+        class="mt-1 w-full rounded-lg border border-slate-300 p-2">
+    </div>
+
+    <div>
+      <label for="fievre" class="block text-sm font-medium text-slate-700">Temperature (C)</label>
+      <input type="number" id="fievre" step="0.1" value="39.2"
+        class="mt-1 w-full rounded-lg border border-slate-300 p-2">
+    </div>
+
+    <div>
+      <label for="glycemie" class="block text-sm font-medium text-slate-700">Glycemie (mmol/L)</label>
+      <input type="number" id="glycemie" step="0.1" value="5.8"
+        class="mt-1 w-full rounded-lg border border-slate-300 p-2">
+    </div>
+
+    <div>
+      <label for="hemoglobine" class="block text-sm font-medium text-slate-700">Hemoglobine (g/dL)</label>
+      <input type="number" id="hemoglobine" step="0.1" value="13.1"
+        class="mt-1 w-full rounded-lg border border-slate-300 p-2">
+    </div>
+
+    <div>
+      <label for="saison" class="block text-sm font-medium text-slate-700">Saison</label>
+      <select id="saison" class="mt-1 w-full rounded-lg border border-slate-300 p-2">
+        <option value="1">Saison des pluies</option>
+        <option value="0">Saison seche</option>
+      </select>
+    </div>
+
+    <button id="btn" onclick="analyser()"
+      class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg">
+      Analyser
+    </button>
+  </div>
+
+  <div id="resultat" class="mt-6"></div>
+
+  <p class="mt-6 text-xs text-center text-slate-500">
+    Outil de pre-diagnostic. Ne remplace jamais l'avis d'un professionnel de sante.
+  </p>
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+async function analyser() {
+  const btn = document.getElementById("btn");
+  const zone = document.getElementById("resultat");
+  btn.disabled = true;
+  btn.textContent = "Analyse en cours...";
+  zone.innerHTML = "";
+
+  const patient = {
+    age: parseInt(document.getElementById("age").value),
+    glycemie: parseFloat(document.getElementById("glycemie").value),
+    hemoglobine: parseFloat(document.getElementById("hemoglobine").value),
+    fievre: parseFloat(document.getElementById("fievre").value),
+    saison: parseInt(document.getElementById("saison").value)
+  };
+
+  try {
+    const reponse = await fetch(API + "/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patient)
+    });
+
+    if (!reponse.ok) {
+      afficherErreur("Donnees invalides (code " + reponse.status + ").");
+      return;
+    }
+
+    const data = await reponse.json();
+    afficherResultat(data);
+  } catch (e) {
+    afficherErreur("API injoignable. Le serveur est-il lance ?");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Analyser";
+  }
+}
+
+function afficherResultat(data) {
+  const p = data.probabilite_paludisme;
+  let couleur = "bg-green-100 border-green-500 text-green-800";
+  if (p >= 0.5) couleur = "bg-red-100 border-red-500 text-red-800";
+  else if (p >= 0.3) couleur = "bg-orange-100 border-orange-500 text-orange-800";
+
+  document.getElementById("resultat").innerHTML = `
+    <div class="border-l-4 rounded-lg p-4 ${couleur}">
+      <p class="text-sm">Probabilite de paludisme</p>
+      <p class="text-4xl font-bold">${(p * 100).toFixed(1)}%</p>
+      <p class="mt-2 font-semibold">${data.pre_diagnostic}</p>
+    </div>`;
+}
+
+function afficherErreur(message) {
+  document.getElementById("resultat").innerHTML = `
+    <div class="border-l-4 border-slate-500 bg-slate-100 rounded-lg p-4 text-slate-700">
+      <p>${message}</p>
+    </div>`;
+}
+</script>
+</body>
+</html>

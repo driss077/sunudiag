@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import joblib
 import pandas as pd
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="SunuDiag API",
@@ -12,6 +13,13 @@ app = FastAPI(
         "Un pre-diagnostic n’est pas un diagnostic medical."
     ),
     version="2.0",
+)
+# Autoriser le navigateur a appeler l'API depuis une autre origine
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Le modele est charge UNE SEULE FOIS, au demarrage du serveur
@@ -45,3 +53,4 @@ def predict(patient: Patient):
         "pre_diagnostic": "A ORIENTER" if proba >= 0.5 else "risque faible",
         "avertissement": "Ne remplace pas un avis medical.",
     }
+
